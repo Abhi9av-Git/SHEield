@@ -1,12 +1,27 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
+const config = require('./config');
 const { handleAudioWS } = require('./controllers/audioWsController');
 
+// Import routes
+const contactsRoutes = require('./routes/contacts');
+const alertsRoutes = require('./routes/alerts');
+const evidenceRoutes = require('./routes/evidence');
+const keywordsRoutes = require('./routes/keywords');
+const placesRoutes = require('./routes/places');
+
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = config.server.port;
+const MONGODB_URI = config.mongodb.uri;
+
+// Middleware
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../uploads')));
 
 // Ensure uploads folder exists
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -20,6 +35,7 @@ try {
 } catch (err) {
     console.error('Error creating uploads folder:', err);
 }
+
 // Create HTTP server and WebSocket server
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server, path: '/audio' });
@@ -27,11 +43,87 @@ const wss = new WebSocket.Server({ server, path: '/audio' });
 // Handle WebSocket connections for audio
 wss.on('connection', handleAudioWS);
 
+// API Routes
+app.use('/api/contacts', contactsRoutes);
+app.use('/api/alerts', alertsRoutes);
+app.use('/api/evidence', evidenceRoutes);
+app.use('/api/keywords', keywordsRoutes);
+app.use('/api/places', placesRoutes);
+
+// Test endpoint for audio classification
+app.get('/api/test/audio', (req, res) => {
+    res.json({
+        message: 'Audio classification system is running',
+        features: [
+            'Real-time audio analysis',
+            'Danger sound detection',
+            'WebSocket streaming',
+            'Audio buffering and classification',
+            'SMS alerts via Twilio',
+            'Emergency contacts management',
+            'Evidence sharing and audio downloads'
+        ],
+        status: 'active'
+    });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        mongo: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        twilio: config.twilio.accountSid ? 'confHEieldigured' : 'not configured'
+    });
+});
+
 // Example REST endpoint
 app.get('/', (req, res) => {
     res.send('Audio WebSocket server running');
 });
 
-server.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-});
+async function start() {
+    try {
+        if (!MONGODB_URI || MONGODB_URI === '') {
+            console.warn('⚠️ MONGODB_URI not set. Running without database connection.');
+            console.log('💡 To enable database features, set MONGODB_URI in .env file');
+        } else {
+            console.log('🔄 Connecting to MongoDB:', MONGODB_URI);
+            await mongoose.connect(MONGODB_URI, {
+                serverSelectionTimeoutMS: 5000,
+            });
+            console.log('✅ Connected to MongoDB successfully');
+        }
+
+        server.listen(PORT, () => {
+            console.log(`Server listening on port ${PORT}`);
+            console.log(`WebSocket endpoint: ws://localhost:${PORT}/audio`);
+            console.log(`Test endpoint: http://localhost:${PORT}/api/test/audio`);
+            console.log(`Contacts API: http://localhost:${PORT}/api/contacts`);
+            console.log(`Alerts API: http://localhost:${PORT}/api/alerts`);
+            console.log(`Evidence API: http://localhost:${PORT}/api/evidence`);
+        });
+    } catch (err) {
+        console.error('❌ Failed to start server:', err.message);
+        
+        // If it's a MongoDB connection error, try to start without database
+        if (err.message.includes('MongoDB') || err.message.includes('mongodb')) {
+            console.log('🔄 Attempting to start server without database connection...');
+            try {
+                server.listen(PORT, () => {
+                    console.log(`✅ Server started on port ${PORT} (without database)`);
+                    console.log(`WebSocket endpoint: ws://localhost:${PORT}/audio`);
+                    console.log(`Test endpoint: http://localhost:${PORT}/api/test/audio`);
+                    console.log('⚠️ Database features disabled - audio processing will work but alerts won\'t be saved');
+                });
+            } catch (serverErr) {
+                console.error('❌ Failed to start server even without database:', serverErr.message);
+                process.exit(1);
+            }
+        } else {
+            process.exit(1);
+        }
+    }
+}
+
+start();
