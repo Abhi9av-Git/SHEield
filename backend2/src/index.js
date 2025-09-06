@@ -1,4 +1,5 @@
 
+const config = require('./config');
 const contactsRouter = require('./routes/contacts');
 // Middleware
 const cors = require('cors');
@@ -14,7 +15,7 @@ const mongoose = require('mongoose');
 
 // MongoDB connection function
 async function connectDB() {
-    const uri = 'mongodb+srv://abhinav31102004_db_user:abh_abh_4545@cluster45.zhfibye.mongodb.net/SHEield';
+    const uri = config.mongodb.uri;
     try {
         await mongoose.connect(uri);
         console.log('✅ Connected to MongoDB');
@@ -27,7 +28,7 @@ async function connectDB() {
 // Call connectDB at startup
 connectDB();
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = config.server.port;
 
 app.use(cors({
   origin: "*", // allow requests from any origin
