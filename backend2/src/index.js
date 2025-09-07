@@ -64,3 +64,10 @@ app.use('/api/contacts', contactsRouter);
 server.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
 });
+
+// ... other require statements
+const alertsRouter = require('./routes/alerts'); 
+
+// ... other app.use statements
+app.use('/api/contacts', contactsRouter);
+app.use('/api/alerts', alertsRouter); 

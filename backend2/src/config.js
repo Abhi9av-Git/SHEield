@@ -1,5 +1,6 @@
 // Configuration settings for the SHIeld application
 // This file centralizes all configuration variables
+require('dotenv').config();
 
 module.exports = {
   // Server configuration
@@ -10,19 +11,31 @@ module.exports = {
 
   // Database configuration
   mongodb: {
-    uri: process.env.MONGODB_URI || 'mongodb+srv://abhinav31102004_db_user:abh_abh_4545@cluster45.zhfibye.mongodb.net/SHEield',
+    uri: process.env.MONGODB_URI, // 👈 CORRECTED LINE
   },
 
   // API Keys
   apiKeys: {
-    gemini: 'AIzaSyDbMEUepZC7Ng7c2xsHnRaMV3cUlS2MY-0', // Replace with your actual key when deploying
+    gemini: process.env.GEMINI_API_KEY, // 👈 CORRECTED LINE
+  },
+
+  // Twilio Configuration
+  twilio: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID,
+    authToken: process.env.TWILIO_AUTH_TOKEN,
+    phoneNumber: process.env.TWILIO_PHONE_NUMBER,
+  },
+
+  // Cloudinary Configuration
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
 
   // Emergency settings
   emergency: {
-    // Time (in milliseconds) to wait before considering lack of response a potential emergency
     responseTimeout: 30000,
-    // Maximum number of retries for emergency notifications
     maxNotificationRetries: 3,
   },
 };
