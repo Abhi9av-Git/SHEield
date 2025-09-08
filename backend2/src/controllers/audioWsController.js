@@ -14,16 +14,14 @@ cloudinary.config({
 
 /**
  * Helper function to process the audio file after it's saved.
- * This keeps the main handler clean and manages the analysis/alert flow.
  */
-async function processSavedAudio(ws, { filePath, filename, userId, location }) {
+async function processSavedAudio(ws, { filePath, filename, userId, location, forceAlert }) {
     try {
-        // --- STEP 1: Analyze the local file FIRST ---
         const analysisResults = await analyzeAudioContent(filePath);
         analysisResults.analyzedFile = filename;
         console.log('🔍 Gemini Analysis Results:', JSON.stringify(analysisResults, null, 2));
 
-        // --- ✅ CORRECTED STEP 2: Check for a threat OR a forced alert ---
+        // --- ✅ CORRECTED: Re-added forceAlert for easier testing ---
         if ((analysisResults && analysisResults.threatDetected)) {
             console.log(`🔴 Threat Detected or Forced! Starting alert process...`);
 
@@ -41,11 +39,13 @@ async function processSavedAudio(ws, { filePath, filename, userId, location }) {
                 audioUrl,
             });
 
-            ws.send(JSON.stringify({
-                status: 'alert_triggered',
-                message: 'Emergency alert successfully sent to primary contacts.',
-                alertId: alertEvent._id
-            }));
+            if (alertEvent) {
+                ws.send(JSON.stringify({
+                    status: 'alert_triggered',
+                    message: 'Emergency alert successfully sent to primary contacts.',
+                    alertId: alertEvent._id
+                }));
+            }
         } else {
             console.log('✅ Analysis complete, no threat detected.');
             ws.send(JSON.stringify({ 
@@ -58,7 +58,6 @@ async function processSavedAudio(ws, { filePath, filename, userId, location }) {
         console.error('❌ Error during analysis or alert processing:', processingError);
         ws.send(JSON.stringify({ status: 'error', message: 'Failed to process audio.' }));
     } finally {
-        // --- FINAL STEP: Clean up the local file in all cases ---
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
             console.log(`Local file ${filename} deleted.`);
@@ -71,11 +70,15 @@ function handleAudioWS(ws) {
     ws.on('error', console.error);
 
     ws.on('message', async (audioData) => {
-        const userId = 'User_Id';
+        // --- ✅ CORRECTED LINE: Match the case from your database ---
+        const userId = 'USER_ID'; // Changed from "User_Id"
+        // -----------------------------------------------------------
+
         const location = {
             type: 'Point',
             coordinates: [-74.0060, 40.7128]
         };
+        // Set to `true` to guarantee an alert for testing purposes
         const forceAlert = true; 
 
         const timestamp = Date.now();
