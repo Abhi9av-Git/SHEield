@@ -58,7 +58,7 @@ function handleAudioWS(ws) {
     });
 
     ws.on('close', () => {
-        console.log('WebSocket connection closed');
+        //console.log('WebSocket connection closed');
     });
 }
 
